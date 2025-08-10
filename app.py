@@ -21,7 +21,7 @@ CORS(app)  # This allows your web bot to talk to this server
 
 # --- LangChain Setup (Global) ---
 llm = ChatGroq(groq_api_key=groq_api_key, model_name="Llama3-70b-8192")
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
 
 # --- This is the updated prompt ---
 prompt = ChatPromptTemplate.from_template(
@@ -91,4 +91,5 @@ def ask_question():
 # --- Main entry point ---
 if __name__ == '__main__':
     # Use port 5000 for the server
+
     app.run(host='0.0.0.0', port=5001)
