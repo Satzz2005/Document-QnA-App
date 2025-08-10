@@ -1,0 +1,13 @@
+langchain
+langchain-groq
+langchain_community
+langchain_huggingface
+langchain_core
+faiss-cpu
+python-dotenv
+pypdf
+sentence-transformers
+Flask
+Flask-Cors
+gunicorn
+gevent
