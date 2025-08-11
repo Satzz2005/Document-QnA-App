@@ -7,11 +7,10 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import create_retrieval_chain
 from langchain_community.vectorstores import FAISS
-# --- Change 1: Import the new loader ---
-from langchain_community.document_loaders import UnstructuredPDFLoader
+# --- Use the original PDF loader ---
+from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_huggingface import HuggingFaceEmbeddings
 from dotenv import load_dotenv
-import glob # Import the glob library
 
 # --- Initialization ---
 load_dotenv()
@@ -23,7 +22,6 @@ CORS(app)
 
 # --- LangChain Setup (Global) ---
 llm = ChatGroq(groq_api_key=groq_api_key, model_name="Llama3-70b-8192")
-# --- Change 2: Use the more reliable embeddings model ---
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
 
 # --- Improved prompt ---
@@ -48,21 +46,15 @@ prompt = ChatPromptTemplate.from_template(
     """
 )
 
-# --- Change 3: New logic to load documents ---
+# --- Original logic to load documents ---
 print("Loading and processing documents...")
 try:
-    # Find all PDF files in the 'data' directory inside the 'api' folder
-    # Build a path to the data directory relative to this file
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    data_dir = os.path.join(basedir, '..', 'data')
-    pdf_files = glob.glob(os.path.join(data_dir, "*.pdf"))
-    all_docs = []
-    for pdf_path in pdf_files:
-        loader = UnstructuredPDFLoader(pdf_path)
-        all_docs.extend(loader.load())
-
+    # This path assumes the 'data' folder is in the root, next to the Procfile
+    loader = PyPDFDirectoryLoader("data")
+    docs = loader.load()
+    
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    final_documents = text_splitter.split_documents(all_docs)
+    final_documents = text_splitter.split_documents(docs)
     vectors = FAISS.from_documents(final_documents, embeddings)
     retriever = vectors.as_retriever()
     print("✅ Documents loaded and retriever ready.")
@@ -73,6 +65,7 @@ except Exception as e:
 # --- API Endpoint ---
 @app.route('/ask', methods=['POST'])
 def ask_question():
+    # ... (This part of your code remains the same)
     data = request.get_json()
     question = data.get('question')
 
@@ -98,4 +91,5 @@ def ask_question():
 
 # --- Main entry point ---
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001)
+    # Heroku will assign its own port, so we don't specify one here
+    app.run(host='0.0.0.0')
