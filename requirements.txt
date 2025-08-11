@@ -2,6 +2,7 @@
 torch==2.3.0+cpu
 langchain-groq
 langchain-community
+langchain-huggingface
 faiss-cpu
 pypdf
 sentence-transformers
