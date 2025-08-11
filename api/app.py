@@ -7,9 +7,11 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import create_retrieval_chain
 from langchain_community.vectorstores import FAISS
-from langchain_community.document_loaders import PyPDFDirectoryLoader
+# --- Change 1: Import the new loader ---
+from langchain_community.document_loaders import UnstructuredPDFLoader
 from langchain_huggingface import HuggingFaceEmbeddings
 from dotenv import load_dotenv
+import glob # Import the glob library
 
 # --- Initialization ---
 load_dotenv()
@@ -17,13 +19,14 @@ groq_api_key = os.getenv("GROQ_API_KEY")
 
 # Initialize Flask App
 app = Flask(__name__)
-CORS(app)  # This allows your web bot to talk to this server
+CORS(app)
 
 # --- LangChain Setup (Global) ---
 llm = ChatGroq(groq_api_key=groq_api_key, model_name="Llama3-70b-8192")
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+# --- Change 2: Use the more reliable embeddings model ---
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
 
-# --- This is the updated prompt ---
+# --- Improved prompt ---
 prompt = ChatPromptTemplate.from_template(
     """
     You are an expert Q&A assistant. Your goal is to provide accurate and detailed answers.
@@ -45,13 +48,18 @@ prompt = ChatPromptTemplate.from_template(
     """
 )
 
-# --- Load documents and create retriever ONCE ---
+# --- Change 3: New logic to load documents ---
 print("Loading and processing documents...")
 try:
-    loader = PyPDFDirectoryLoader("Document-QnA-App/data")# Looks for a 'data' folder
-    docs = loader.load()
+    # Find all PDF files in the 'data' directory inside the 'api' folder
+    pdf_files = glob.glob("api/data/*.pdf")
+    all_docs = []
+    for pdf_path in pdf_files:
+        loader = UnstructuredPDFLoader(pdf_path)
+        all_docs.extend(loader.load())
+
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    final_documents = text_splitter.split_documents(docs)
+    final_documents = text_splitter.split_documents(all_docs)
     vectors = FAISS.from_documents(final_documents, embeddings)
     retriever = vectors.as_retriever()
     print("✅ Documents loaded and retriever ready.")
@@ -72,17 +80,14 @@ def ask_question():
 
     try:
         if retriever:
-            # Create the chain and invoke it if documents are loaded
             document_chain = create_stuff_documents_chain(llm, prompt)
             retrieval_chain = create_retrieval_chain(retriever, document_chain)
             response = retrieval_chain.invoke({'input': question})
             answer = response['answer']
         else:
-            # If no documents, just use the LLM for general knowledge
             response = llm.invoke(question)
             answer = response.content
-
-        # Return the answer
+        
         return jsonify({"answer": answer})
     except Exception as e:
         print(f"❌ Error during chain invocation: {e}")
@@ -90,5 +95,4 @@ def ask_question():
 
 # --- Main entry point ---
 if __name__ == '__main__':
-    # Use port 5000 for the server
     app.run(host='0.0.0.0', port=5001)
