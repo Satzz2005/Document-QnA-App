@@ -1,3 +1,5 @@
+--find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+torch==2.3.0+cpu
 langchain-groq
 langchain-community
 faiss-cpu
@@ -7,6 +9,3 @@ Flask
 Flask-Cors
 gunicorn
 gevent
-
-
-
