@@ -52,7 +52,10 @@ prompt = ChatPromptTemplate.from_template(
 print("Loading and processing documents...")
 try:
     # Find all PDF files in the 'data' directory inside the 'api' folder
-    pdf_files = glob.glob("api/data/*.pdf")
+    # Build a path to the data directory relative to this file
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    data_dir = os.path.join(basedir, '..', 'data')
+    pdf_files = glob.glob(os.path.join(data_dir, "*.pdf"))
     all_docs = []
     for pdf_path in pdf_files:
         loader = UnstructuredPDFLoader(pdf_path)
